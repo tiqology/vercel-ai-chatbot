@@ -18,6 +18,25 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
+// Sanitize user-provided URLs before using them as iframe sources.
+const sanitizeUrl = (rawUrl: string): string => {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return "";
+
+  try {
+    // Use the current origin as base to support relative URLs.
+    const parsed = new URL(trimmed, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+    // Allow only http and https schemes.
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.toString();
+    }
+  } catch {
+    // Invalid URL, fall through to return empty string.
+  }
+
+  return "";
+};
+
 export type WebPreviewContextValue = {
   url: string;
   setUrl: (url: string) => void;
@@ -51,8 +70,9 @@ export const WebPreview = ({
   const [consoleOpen, setConsoleOpen] = useState(false);
 
   const handleUrlChange = (newUrl: string) => {
-    setUrl(newUrl);
-    onUrlChange?.(newUrl);
+    const safeUrl = sanitizeUrl(newUrl);
+    setUrl(safeUrl);
+    onUrlChange?.(safeUrl);
   };
 
   const contextValue: WebPreviewContextValue = {
